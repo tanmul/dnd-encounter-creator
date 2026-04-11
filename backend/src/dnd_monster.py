@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, computed_field, model_validator, field_validator
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 
 CR_TO_XP = {
     '0': 10,
@@ -39,10 +39,12 @@ CR_TO_XP = {
 }
 
 class Monster(BaseModel):
+    model_config = {'extra': 'ignore'}
+
     name : str = Field(alias='name')
     description : str = Field(alias='description')
     category : str = Field(alias='properties.Category')
-    size : Literal['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'] = Field(alias='properties.Size')
+    size : Optional[List[str]] = Field(alias='properties.Size', default=None)
     type : Optional[str] = Field(alias='properties.Type', default=None)
     alignment : Optional[str] = Field(alias='properties.Alignment', default=None)
     challenge_rating : Optional[str] = Field(alias='properties.Challenge Rating', default=None)
@@ -54,16 +56,17 @@ class Monster(BaseModel):
     
     @model_validator(mode='before')
     @classmethod
-    def flatten_properties(cls, data):
+    def flatten_and_parse_properties(cls, data):
         if isinstance(data, dict):
             for key, value in data.get('properties', {}).items():
-                data[f'properties.{key}'] = value
+                if key == 'Challenge Rating': # Challenge Rating can be a number, need to coerce the string
+                    data[f'properties.{key}'] = str(value)
+                elif key == 'Size': # Size can be 'Small or Medium', which we should split into a list
+                    data[f'properties.{key}'] = [size.strip() for size in value.replace('or', ',').split(',')]
+                else:
+                    data[f'properties.{key}'] = value
 
         return data
-    
-    @field_validator('challenge_rating', mode='before')
-    @classmethod
-    def force_str(cls, v) -> str:
-        return str(v)
+
 
     
