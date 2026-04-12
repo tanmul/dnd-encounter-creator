@@ -15,5 +15,4 @@ class EncounterFilter(BaseModel):
     encounter_type : Literal['Balanced', 'Boss', 'Swarm'] = Field(alias='encounter_type', default='Balanced')
 
     monster_names: Optional[List[str]] = Field(alias='monster_names', default=None)
-    monster_types: Optional[List[str]] = Field(alias='monster_types', default=None)
     monster_sizes: Optional[List[str]] = Field(alias='monster_sizes', default=None)

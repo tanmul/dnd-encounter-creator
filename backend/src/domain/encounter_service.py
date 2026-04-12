@@ -39,49 +39,46 @@ class EncounterService():
             filtered_monsters = list(filter(lambda x: x.name in encounter_filter.monster_names, filtered_monsters))
         if encounter_filter.monster_sizes:
             filtered_monsters = list(filter(lambda x: bool(set(x.sizes) & set(encounter_filter.monster_sizes)), filtered_monsters))
-        if encounter_filter.monster_types:
-            filtered_monsters = list(filter(lambda x: x.type in encounter_filter.monster_types, filtered_monsters))
-
-        print(f'Number of filtered monsters: {len(filtered_monsters)}')
 
         # Creating a xp -> monster list map using the filtered monsters
         xp_monster_map : Dict[int, List[Monster]] = {}
         for monster in filtered_monsters:
             xp_monster_map.setdefault(monster.xp, []).append(monster)
-        xp_monster_map.pop(0) # We don't want any 0 xp monsters
-
-        # We come up with random sampling on weights for the monster xp
-        weights = [1] * len(xp_monster_map.keys())
-        if encounter_filter.encounter_type == 'Boss':
-            weights = [xp **2 for xp in xp_monster_map.keys()]
-        elif encounter_filter.encounter_type == 'Swarm':
-            weights = [1/xp for xp in xp_monster_map.keys()]
-
-        print(f'Generating using a {encounter_filter.encounter_type} encounter setting: {weights}')
+        if 0 in xp_monster_map:
+            xp_monster_map.pop(0) # We don't want any 0 xp monsters
 
         # Now we generate the encounter using the list of monsters we have
-        xp_budget = XP_BUDGET_MAP[encounter_filter.pc_filter.player_level][encounter_filter.difficulty] * encounter_filter.pc_filter.player_count
-
         best_encounter = []
         best_encounter_total_xp = 0
         for _ in range(10): # We will be coming up with many encounters and choosing the one closest to the budget
+            xp_budget = XP_BUDGET_MAP[encounter_filter.pc_filter.player_level][encounter_filter.difficulty] * encounter_filter.pc_filter.player_count
             current_encounter = []
             current_encounter_xp_total = 0
+            used_monsters = set()
             while xp_budget >= 0:
                 valid_xp_costs = [xp for xp in xp_monster_map.keys() if xp <= xp_budget]
-                if not valid_xp_costs:
+                if not valid_xp_costs or len(used_monsters) >= len(filtered_monsters):
                     break
+
+                # We come up with weights for the monster xp based on encounter type
+                weights = [1] * len(valid_xp_costs)
+                if encounter_filter.encounter_type == 'Boss':
+                    weights = [xp **2 for xp in valid_xp_costs]
+                elif encounter_filter.encounter_type == 'Swarm':
+                    weights = [1/xp for xp in valid_xp_costs]
                 
-                random_xp_choice = random.choices(list(xp_monster_map.keys()), weights=weights, k=1)[0]
-                if random_xp_choice <= xp_budget:
+                random_xp_choice = random.choices(valid_xp_costs, weights=weights, k=1)[0]
+                valid_monsters = [monster for monster in xp_monster_map[random_xp_choice] if monster.name not in used_monsters]
+                if random_xp_choice <= xp_budget and valid_monsters:
+                    monster = random.choice(valid_monsters)
                     monster_count_upper = int(xp_budget/random_xp_choice)
                     num_monsters = random.randint(1, monster_count_upper)
-                    monster = random.choice(xp_monster_map[random_xp_choice])
-                    current_encounter.append((num_monsters, monster))
                     monster_xp_total = num_monsters * random_xp_choice
                     current_encounter_xp_total += monster_xp_total 
                     xp_budget -= monster_xp_total # Reduce the xp_budget
-                    xp_monster_map[random_xp_choice].remove(monster) # Don't pick the same monster again
+                    current_encounter.append((num_monsters, monster))
+                    used_monsters.add(monster.name) # Don't pick the same monster again
+                print('Current Encounter: ', current_encounter)
 
             if current_encounter_xp_total > best_encounter_total_xp:
                 best_encounter_total_xp = current_encounter_xp_total

@@ -38,6 +38,23 @@ CR_TO_XP = {
     '30': 155000
 }
 
+STANDARD_TYPES = [
+    'aberration',
+    'beast',
+    'celestial',
+    'construct',
+    'dragon',
+    'elemental',
+    'fey',
+    'fiend',
+    'giant',
+    'humanoid',
+    'monstrosity',
+    'ooze',
+    'plant',
+    'undead'
+]
+
 class Monster(BaseModel):
     model_config = {'extra': 'ignore'}
 
@@ -46,7 +63,7 @@ class Monster(BaseModel):
     category : str = Field(alias='properties.Category')
     sizes : Optional[List[str]] = Field(alias='properties.Size')
     challenge_rating : str = Field(alias='properties.Challenge Rating')
-    type : Optional[str] = Field(alias='properties.Type', default=None)
+    type : List[str] = Field(alias='properties.Type')
     alignment : Optional[str] = Field(alias='properties.Alignment', default=None)
 
     @computed_field
@@ -63,6 +80,8 @@ class Monster(BaseModel):
                     data[f'properties.{key}'] = str(value)
                 elif key == 'Size': # Size can be 'Small or Medium', which we should split into a list
                     data[f'properties.{key}'] = [size.strip() for size in value.replace('or', ',').split(',')]
+                elif key == 'Type':
+                    data[f'properties.{key}'] = [type for type in STANDARD_TYPES if value.find(type) != -1]
                 else:
                     data[f'properties.{key}'] = value
 
