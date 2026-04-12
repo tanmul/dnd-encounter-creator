@@ -42,12 +42,12 @@ class Monster(BaseModel):
     model_config = {'extra': 'ignore'}
 
     name : str = Field(alias='name')
-    description : str = Field(alias='description')
+    # description : str = Field(alias='description')
     category : str = Field(alias='properties.Category')
-    size : Optional[List[str]] = Field(alias='properties.Size', default=None)
+    sizes : Optional[List[str]] = Field(alias='properties.Size')
+    challenge_rating : str = Field(alias='properties.Challenge Rating')
     type : Optional[str] = Field(alias='properties.Type', default=None)
     alignment : Optional[str] = Field(alias='properties.Alignment', default=None)
-    challenge_rating : Optional[str] = Field(alias='properties.Challenge Rating', default=None)
 
     @computed_field
     @property

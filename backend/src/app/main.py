@@ -2,26 +2,25 @@ import json
 from typing import List
 from fastapi import FastAPI, Request, Depends
 from contextlib import asynccontextmanager
-
-from dnd_monster import Monster
+   
+from domain.monster import Monster
 
 MONSTER_FILE = '../../../data/monsters.json'
 
-monster_cache : List[Monster] = []
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if not monster_cache:
-        with open(MONSTER_FILE, 'r') as fd:
-            monster_list = json.load(fd)
-            for monster_dict in monster_list:
-                monster_cache.append(Monster(**monster_dict))
-        
-    yield {'monster_cache': monster_cache}
+    with open(MONSTER_FILE, 'r') as fd:
+        data = json.load(fd)
+        app.state.monsters = [Monster(**m) for m in data]
+    print(f"Cached {len(app.state.monsters)} monsters")
 
-    monster_cache.clear()
+    yield 
+
+    app.state.monsters.clear()
+    
 
 def get_monster_cache(request : Request):
-    return request.app.state['monster_cache']
+    return request.app.state.monsters
 
 app = FastAPI(lifespan=lifespan)
 
@@ -29,6 +28,6 @@ app = FastAPI(lifespan=lifespan)
 def base():
     return {'message': 'Welcome to the DnD Encounter Creator API!'}
 
-@app.get('/generate-encounter')
+@app.get('/generate')
 def generate_encounter(monsters : List[Monster] = Depends(get_monster_cache)):
     return {'monsters': monsters}
