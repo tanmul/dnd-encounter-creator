@@ -38,33 +38,37 @@ CR_TO_XP = {
     '30': 155000
 }
 
-STANDARD_TYPES = [
-    'aberration',
-    'beast',
-    'celestial',
-    'construct',
-    'dragon',
-    'elemental',
-    'fey',
-    'fiend',
-    'giant',
-    'humanoid',
-    'monstrosity',
-    'ooze',
-    'plant',
-    'undead'
+STANDARD_TYPES = Literal[
+    'Aberration',
+    'Beast',
+    'Celestial',
+    'Construct',
+    'Dragon',
+    'Elemental',
+    'Fey',
+    'Fiend',
+    'Giant',
+    'Humanoid',
+    'Monstrosity',
+    'Ooze',
+    'Plant',
+    'Undead',
+    'Swarm of Tiny Beasts',
+    'Swarm of Tiny Monstrosities',
+    'Swarm of Tiny Undead',
+    'Swarm of Small Fiends',
+    'Swarm of Medium Fiends'
 ]
 
 class Monster(BaseModel):
     model_config = {'extra': 'ignore'}
 
     name : str = Field(alias='name')
-    # description : str = Field(alias='description')
-    category : str = Field(alias='properties.Category')
-    sizes : Optional[List[str]] = Field(alias='properties.Size')
-    challenge_rating : str = Field(alias='properties.Challenge Rating')
-    type : List[str] = Field(alias='properties.Type')
-    alignment : Optional[str] = Field(alias='properties.Alignment', default=None)
+    sizes : List[Literal['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan']] = Field(alias='size')
+    challenge_rating : str = Field(alias='cr')
+    types : List[STANDARD_TYPES] = Field(alias='type')
+    alignment : str = Field(alias='alignment')
+    armor_class : int = Field(alias='ac')
 
     @computed_field
     @property
@@ -74,16 +78,15 @@ class Monster(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def flatten_and_parse_properties(cls, data):
-        if isinstance(data, dict):
-            for key, value in data.get('properties', {}).items():
-                if key == 'Challenge Rating': # Challenge Rating can be a number, need to coerce the string
-                    data[f'properties.{key}'] = str(value)
-                elif key == 'Size': # Size can be 'Small or Medium', which we should split into a list
-                    data[f'properties.{key}'] = [size.strip() for size in value.replace('or', ',').split(',')]
-                elif key == 'Type':
-                    data[f'properties.{key}'] = [type for type in STANDARD_TYPES if value.find(type) != -1]
-                else:
-                    data[f'properties.{key}'] = value
+        for key, value in data.items():
+            if key == 'size': # Size can be 'Small or Medium', which we should split into a list
+                data['size'] = [size.strip() for size in value.replace('or', ',').split(',')]
+            elif key == 'type':
+                data['type'] = [type.strip() for type in value.split('(')[0].strip().replace('or', ',').split(',')]
+            elif key == 'cr':
+                data['cr'] = 0 if not value else value
+            else:
+                data[key] = value
 
         return data
 

@@ -16,3 +16,5 @@ class EncounterFilter(BaseModel):
 
     monster_names: Optional[List[str]] = Field(alias='monster_names', default=None)
     monster_sizes: Optional[List[str]] = Field(alias='monster_sizes', default=None)
+    monster_alignments: Optional[List[str]] = Field(alias='monster_alignments', default=None)
+    monster_types: Optional[List[str]] = Field(alias='monster_types', default=None)

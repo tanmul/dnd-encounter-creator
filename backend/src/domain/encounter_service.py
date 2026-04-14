@@ -78,7 +78,6 @@ class EncounterService():
                     xp_budget -= monster_xp_total # Reduce the xp_budget
                     current_encounter.append((num_monsters, monster))
                     used_monsters.add(monster.name) # Don't pick the same monster again
-                print('Current Encounter: ', current_encounter)
 
             if current_encounter_xp_total > best_encounter_total_xp:
                 best_encounter_total_xp = current_encounter_xp_total
